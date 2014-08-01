@@ -20,6 +20,10 @@ namespace Cli
                 {
                     Console.WriteLine(o);
                 }
+                foreach (Packet packet in decoder.ReadEncryptedPart())
+                {
+                    Console.WriteLine(packet);
+                }
             }
             return 0;
         }
