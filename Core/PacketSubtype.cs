@@ -7,6 +7,7 @@ namespace Core
     /// </summary>
     public enum PacketSubtype
     {
+        None = 0x00,
         Subtype01 = 0x01,
         Subtype03 = 0x03,
         Subtype05 = 0x05,
