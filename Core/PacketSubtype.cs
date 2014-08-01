@@ -2,6 +2,9 @@
 
 namespace Core
 {
+    /// <summary>
+    /// Replay packet subtype.
+    /// </summary>
     public enum PacketSubtype
     {
         Subtype01 = 0x01,
@@ -10,6 +13,6 @@ namespace Core
         Subtype07 = 0x07,
         Subtype0B = 0x0B,
         Subtype11 = 0x11,
-        Subtype17 = 0x17
+        Subtype17 = 0x17,
     }
 }
