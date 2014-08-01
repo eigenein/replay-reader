@@ -2,5 +2,5 @@
 
 namespace Core
 {
-    public delegate Property PropertyGetter(byte[] payload);
+    public delegate Property PropertyGetter(PacketSubtype subtype, byte[] payload);
 }

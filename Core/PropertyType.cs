@@ -7,7 +7,6 @@ namespace Core
     /// </summary>
     public enum PropertyType
     {
-        Subtype,
         PlayerId,
         Health,
         DestroyedTrackId,

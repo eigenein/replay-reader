@@ -6,10 +6,44 @@ namespace Core
 {
     public class PacketReader : IDisposable
     {
+        /// <summary>
+        /// Property value getters.
+        /// </summary>
         private static readonly IDictionary<PropertyType, PropertyGetter> PropertyGetters =
             new Dictionary<PropertyType, PropertyGetter>()
             {
-                {PropertyType.Health, payload => new ShortProperty(BitConverter.ToInt16(payload, 12))},
+                // TODO: PropertyType.AltTrackState
+                // TODO: PropertyType.DestroyedTrackId
+                {
+                    PropertyType.Health, 
+                    (subtype, payload) => new ShortProperty(BitConverter.ToInt16(payload, 12))
+                },
+                {
+                    PropertyType.HullOrientation, 
+                    (subtype, payload) => VectorProperty.FromPayload(payload, 36)
+                },
+                {
+                    PropertyType.Message, 
+                    (subtype, payload) => StringProperty.FromPayload(payload, 0)
+                },
+                {
+                    PropertyType.PlayerId, 
+                    (subtype, payload) => new IntProperty(BitConverter.ToInt32(payload, 0))
+                },
+                {
+                    PropertyType.Position,
+                    (subtype, payload) => VectorProperty.FromPayload(payload, 12)
+                },
+                {
+                    PropertyType.Source,
+                    (subtype, payload) => new IntProperty(BitConverter.ToInt32(payload, 
+                        subtype == PacketSubtype.Subtype01 ? 14 : (subtype == PacketSubtype.Subtype0B ? 18 : 12)))
+                },
+                {
+                    PropertyType.Target,
+                    (subtype, payload) => new IntProperty(BitConverter.ToInt32(payload,
+                        subtype == PacketSubtype.Subtype17 ? 16 : 12))
+                },
             };
 
         private readonly BinaryReader reader;
@@ -36,8 +70,14 @@ namespace Core
             // Read common properties.
             PacketType packetType = (PacketType)reader.ReadInt32();
             float clock = reader.ReadSingle();
-            Packet packet = new Packet(packetType, clock);
             byte[] payload = reader.ReadBytes(payloadLength); // read payload
+            // Read subtype if possible.
+            PacketSubtype subtype = PacketSubtype.None;
+            if ((packetType == PacketType.EntityProperty) || (packetType == PacketType.EntityMethod))
+            {
+                subtype = (PacketSubtype)BitConverter.ToInt32(payload, 4);
+            }
+            Packet packet = new Packet(packetType, subtype, clock);
             ReadProperties(packet, payload); // read packet properties
             return packet;
         }
@@ -56,15 +96,7 @@ namespace Core
         /// </summary>
         private HashSet<PropertyType> GetPropertyTypes(Packet packet, byte[] payload)
         {
-            PacketSubtype subtype = PacketSubtype.None;
             HashSet<PropertyType> propertyTypes = new HashSet<PropertyType>();
-            // Read subtype if possible.
-            if ((packet.PacketType == PacketType.EntityProperty) ||
-                (packet.PacketType == PacketType.EntityMethod))
-            {
-                subtype = (PacketSubtype)BitConverter.ToInt32(payload, 4);
-                packet[PropertyType.Subtype] = new SubtypeProperty(subtype);
-            }
             // Fill property type set.
             switch (packet.PacketType)
             {
@@ -79,11 +111,11 @@ namespace Core
                     break;
                 case PacketType.EntityProperty:
                     propertyTypes.Add(PropertyType.PlayerId);
-                    if (subtype == PacketSubtype.Subtype03)
+                    if (packet.Subtype == PacketSubtype.Subtype03)
                     {
                         propertyTypes.Add(PropertyType.Health);
                     }
-                    if (subtype == PacketSubtype.Subtype07)
+                    if (packet.Subtype == PacketSubtype.Subtype07)
                     {
                         propertyTypes.Add(PropertyType.DestroyedTrackId);
                     }
@@ -91,7 +123,7 @@ namespace Core
                 case PacketType.EntityMethod:
                     propertyTypes.Add(PropertyType.PlayerId);
                     // TODO: property_t::tank_destroyed
-                    switch (subtype)
+                    switch (packet.Subtype)
                     {
                         case PacketSubtype.Subtype01:
                             propertyTypes.Add(PropertyType.Source);
@@ -134,7 +166,7 @@ namespace Core
                 PropertyGetter getter;
                 if (PropertyGetters.TryGetValue(propertyType, out getter))
                 {
-                    packet[propertyType] = PropertyGetters[propertyType](payload);
+                    packet[propertyType] = PropertyGetters[propertyType](packet.Subtype, payload);
                 }
             }
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 namespace Core
 {
@@ -46,9 +47,45 @@ namespace Core
         }
     }
 
-    public class SubtypeProperty : Property<PacketSubtype>
+    /// <summary>
+    /// Represents position and orientation.
+    /// </summary>
+    public class VectorProperty : Property
     {
-        public SubtypeProperty(PacketSubtype value) : base(value)
+        private readonly float x;
+        private readonly float y;
+        private readonly float z;
+
+        public static VectorProperty FromPayload(byte[] payload, int startIndex)
+        {
+            return new VectorProperty(
+                BitConverter.ToSingle(payload, startIndex),
+                BitConverter.ToSingle(payload, startIndex + sizeof(float)),
+                BitConverter.ToSingle(payload, startIndex + 2 * sizeof(float)));
+        }
+
+        private VectorProperty(float x, float y, float z)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        public override string ToString()
+        {
+            return String.Format("({0}; {1}; {2})", x, y, z);
+        }
+    }
+
+    public class StringProperty : Property<string>
+    {
+        public static StringProperty FromPayload(byte[] payload, int startIndex)
+        {
+            return new StringProperty(Encoding.UTF8.GetString(
+                payload, startIndex + 4, BitConverter.ToInt32(payload, startIndex)));
+        }
+
+        private StringProperty(string value) : base(value)
         {
             // Do nothing.
         }
